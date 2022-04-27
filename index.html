@@ -8,12 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <title>Faceted</title>
 
-    <script src="node_modules/tweakpane/dist/tweakpane.js"></script>
-    <!--TODO tweakpane doesn't have es module support, replace cdn by the filesystem path, when it's implemented-->
     <script type="importmap">
 {
   "imports": {
-    "three": "./node_modules/three/build/three.module.js",
+    "three": "https://cdn.skypack.dev/three",
     "tweakpane": "https://cdn.skypack.dev/tweakpane"
   }
 }
