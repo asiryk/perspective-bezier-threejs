@@ -1,14 +1,17 @@
 import {
   AxesHelper,
-  LatheGeometry,
-  Mesh,
-  MeshBasicMaterial,
+  BufferGeometry,
+  CubicBezierCurve3,
+  CurvePath, Line,
+  LineBasicMaterial,
   PerspectiveCamera,
+  QuadraticBezierCurve,
+  QuadraticBezierCurve3,
   Scene,
-  Vector2,
+  Vector3,
   WebGLRenderer,
 } from "three";
-import { cubicBezierPoint } from "./util.js";
+import { createLine } from "./util.js";
 
 export const getRenderer = (() => {
   const renderer = new WebGLRenderer({antialias: true});
@@ -26,17 +29,51 @@ export const getScene = (() => {
   return () => scene;
 })();
 
-const getGeometry = (segmentsY = 10, segmentsZ = 10, pivots) => {
-  if (!pivots) {
-    pivots = [new Vector2(0, 0), new Vector2(.8, .2), new Vector2(.2, .8), new Vector2(1, 1)];
+const getGeometry = () => {
+  // region define pivots
+  const start = new Vector3(0, 0, -2);
+  const end = new Vector3(0, 0, 2);
+  const xzLeftCurve = new CubicBezierCurve3(
+    start,
+    new Vector3(.2, 0, .8),
+    new Vector3(.8, 0, .2),
+    end);
+
+  const xzRightCurve = new CubicBezierCurve3(
+    start,
+    new Vector3(-.8, 0, .2),
+    new Vector3(-.2, 0, .8),
+    end);
+
+  const yzCurve = new QuadraticBezierCurve3(
+    start,
+    new Vector3(0, 2, 0),
+    end);
+  // endregion
+
+  // region Ox curves
+  const oxLines = [];
+  const N = 50;
+  const xzLeftPoints = xzLeftCurve.getPoints(N);
+  const xzRightPoints = xzRightCurve.getPoints(N);
+  const yzPoints = yzCurve.getPoints(N);
+  const zStep = Math.abs(end.z - start.z) / N;
+  for (let i = 0; i < N; i++) {
+    const z = start.z + zStep * i;
+    const v0 = xzLeftPoints[i];
+    const v1 = yzPoints[i];
+    const v2 = xzRightPoints[i];
+    const curve = new QuadraticBezierCurve3(new Vector3(v0.x, v0.y, z), new Vector3(v1.x, v1.y, z), new Vector3(v2.x, v2.y, z))
+    oxLines.push(createLine(curve.getPoints(10), 0x0000ff))
   }
-  const points = []; // create 2d bezier curve
-  for (let t = 0; t < segmentsY; t++) {
-    points.push(cubicBezierPoint(t / segmentsY, ...pivots));
-  }
-  const geometry = new LatheGeometry(points, segmentsZ);
-  const material = new MeshBasicMaterial({color: 0x0000ff, wireframe: true});
-  return new Mesh(geometry, material);
+  // endregion
+
+  // region Oz curves
+  const ozLines = [];
+  const M = 50;
+  // endregion
+
+  return [...oxLines, ozLines, createLine(yzPoints, 0x00ff00), createLine(xzLeftPoints, 0xff0000), createLine(xzRightPoints, 0xff0000)];
 };
 
 export const render = (() => {
@@ -45,20 +82,14 @@ export const render = (() => {
   const camera = getCamera();
   const scene = getScene();
 
-  let geometry = getGeometry();
-  scene.add(geometry);
+  getGeometry().forEach(line => scene.add(line));
   scene.add(new AxesHelper());
 
   renderer.setSize(width, height);
   renderer.render(scene, camera);
 
-  return (pivots, segmentsY, segmentsZ) => {
+  return () => {
     const width = window.innerWidth, height = window.innerHeight;
-    if (Array.isArray(pivots)) {
-      scene.remove(geometry);
-      geometry = getGeometry(segmentsY, segmentsZ, pivots);
-      scene.add(geometry);
-    }
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(window.devicePixelRatio);

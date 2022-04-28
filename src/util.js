@@ -1,4 +1,4 @@
-import { Vector2 } from "three";
+import { BufferGeometry, Line, LineBasicMaterial, QuadraticBezierCurve, Vector2 } from "three";
 
 const bezier3 = (t, p0, p1, p2, p3) =>
   ((1 - t) ** 3) * p0 + 3 * ((1 - t) ** 2) * t * p1 + 3 * (1 - t) * (t ** 2) * p2 + (t ** 3) * p3;
@@ -18,4 +18,7 @@ export function cubicBezierPoint(t, point0, point1, point2, point3) {
   return new Vector2(x, y);
 }
 
-export const toVector2 = (obj) => new Vector2(obj.x, obj.y);
+export const createLine = (points, color) => {
+  const material = new LineBasicMaterial({color});
+  return new Line(new BufferGeometry().setFromPoints(points), material);
+};
